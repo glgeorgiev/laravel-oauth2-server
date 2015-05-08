@@ -34,10 +34,10 @@ class OAuthServerServiceProvider extends ServiceProvider {
         $authorizationServer->setAuthCodeStorage(new Storage\AuthCodeStorage());
 
         $authCodeGrant = new AuthCodeGrant();
-        $server->addGrantType($authCodeGrant);
+        $authorizationServer->addGrantType($authCodeGrant);
 
         $refreshTokenGrant = new RefreshTokenGrant();
-        $server->addGrantType($refreshTokenGrant);
+        $authorizationServer->addGrantType($refreshTokenGrant);
 
         $resourceServer = new ResourceServer(
             new Storage\SessionStorage(),
@@ -74,11 +74,12 @@ class OAuthServerServiceProvider extends ServiceProvider {
 
         $router->get('user_details', function () use ($resourceServer) {
             $accessTokenString = Request::input('access_token');
-            if (! $resourceServer->isValidRequest(false, $accessTokenString)) {
-                die('The request is not valid!');
-            }
             $accessToken = new AccessTokenEntity($resourceServer);
             $accessToken->setId($accessTokenString);
+
+            if (! $resourceServer->isValidRequest(false, $accessToken)) {
+                die('The request is not valid!');
+            }
 
             $session = $resourceServer->getSessionStorage()->getByAccessToken($accessToken);
 
