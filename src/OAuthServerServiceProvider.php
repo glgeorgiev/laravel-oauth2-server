@@ -22,12 +22,19 @@ class OAuthServerServiceProvider extends ServiceProvider {
     {
         $configPath = __DIR__ . '/../config/laravel-oauth2-server.php';
         $this->mergeConfigFrom($configPath, 'laravel-oauth2-server');
+
+        $this->app['command.oauth.client'] = $this->app->share(function($app) {
+            return new Console\Commands\ClientCommand();
+        });
+        $this->commands('command.oauth.client');
     }
 
     public function boot(Router $router)
     {
         $configPath = __DIR__ . '/../config/laravel-oauth2-server.php';
         $this->publishes([$configPath => config_path('laravel-oauth2-server.php')], 'config');
+        $migrationPath = __DIR__ . '/../database/migrations/';
+        $this->publishes([$migrationPath => database_path('migrations/')], 'migrations');
 
         $authorizationServer = new AuthorizationServer();
         $authorizationServer->setSessionStorage(new Storage\SessionStorage());
@@ -56,7 +63,7 @@ class OAuthServerServiceProvider extends ServiceProvider {
                 if (Auth::check()) {
                     $redirectUri = $authorizationServer->getGrantType('authorization_code')
                         ->newAuthorizeRequest('user', Auth::id(), $authParams);
-                    return redirect($redirectUri, 302);
+                    return redirect($redirectUri);
                 }
                 if (Config::get('laravel-oauth2-server.login_is_route')) {
                     return redirect(route(Config::get('laravel-oauth2-server.login_route')));
@@ -70,7 +77,7 @@ class OAuthServerServiceProvider extends ServiceProvider {
         $router->post('access_token', function () use ($authorizationServer) {
             try {
                 $response = $authorizationServer->issueAccessToken();
-                return response(json_encode($response), 200);
+                return response(json_encode($response));
             } catch (Exception $e) {
                 die('Could not issue access token!');
             }
@@ -96,7 +103,7 @@ class OAuthServerServiceProvider extends ServiceProvider {
 
     public function provides()
     {
-        return [];
+        return ['command.oauth.client'];
     }
 
 }
