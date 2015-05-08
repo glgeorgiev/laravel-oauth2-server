@@ -20,11 +20,15 @@ class OAuthServerServiceProvider extends ServiceProvider {
 
     public function register()
     {
-        //
+        $configPath = __DIR__ . '/../config/laravel-oauth2-server.php';
+        $this->mergeConfigFrom($configPath, 'laravel-oauth2-server');
     }
 
     public function boot(Router $router)
     {
+        $configPath = __DIR__ . '/../config/laravel-oauth2-server.php';
+        $this->publishes([$configPath => config_path('laravel-oauth2-server.php')], 'config');
+
         $authorizationServer = new AuthorizationServer();
         $authorizationServer->setSessionStorage(new Storage\SessionStorage());
         $authorizationServer->setAccessTokenStorage(new Storage\AccessTokenStorage());
