@@ -1,0 +1,22 @@
+{
+    "name": "glgeorgiev/laravel-oauth2-server",
+    "description": "OAuth2 Server for Laravel.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Georgi Georgiev",
+            "email": "georgi.georgiev@delta.bg"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+       "php": ">=5.4.0",
+       "laravel/framework": "5.0.*",
+       "league/oauth2-server": "dev-master"
+    },
+    "autoload": {
+       "psr-4": {
+           "GLGeorgiev\\LaravelOAuth2Server\\": "src/"
+        }
+    }
+}
