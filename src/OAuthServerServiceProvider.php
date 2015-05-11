@@ -9,7 +9,7 @@ use League\OAuth2\Server\Grant\AuthCodeGrant;
 use League\OAuth2\Server\Grant\RefreshTokenGrant;
 use League\OAuth2\Server\Entity\AccessTokenEntity;
 
-use GuzzleHttp\Client as GuzzleClient;
+use Guzzle\Http\Client as GuzzleClient;
 
 use Auth;
 use Config;
