@@ -9,10 +9,13 @@ use League\OAuth2\Server\Grant\AuthCodeGrant;
 use League\OAuth2\Server\Grant\RefreshTokenGrant;
 use League\OAuth2\Server\Entity\AccessTokenEntity;
 
+use GuzzleHttp\Client as GuzzleClient;
+
 use Auth;
 use Config;
 use Exception;
 use Request;
+use Session;
 
 class OAuthServerServiceProvider extends ServiceProvider {
 
@@ -23,7 +26,7 @@ class OAuthServerServiceProvider extends ServiceProvider {
         $configPath = __DIR__ . '/../config/laravel-oauth2-server.php';
         $this->mergeConfigFrom($configPath, 'laravel-oauth2-server');
 
-        $this->app['command.oauth.client'] = $this->app->share(function($app) {
+        $this->app['command.oauth.client'] = $this->app->share(function() {
             return new Console\Commands\ClientCommand();
         });
         $this->commands('command.oauth.client');
@@ -57,7 +60,21 @@ class OAuthServerServiceProvider extends ServiceProvider {
             new Storage\ScopeStorage()
         );
 
-        $router->get('authorize', function() use($authorizationServer) {
+        $this->authorizeRoute($router, $authorizationServer);
+
+        $this->accessTokenRoute($router, $authorizationServer);
+
+        $this->userDetailsRoute($router, $resourceServer);
+    }
+
+    public function provides()
+    {
+        return ['command.oauth.client'];
+    }
+
+    private function authorizeRoute(Router $router, AuthorizationServer $authorizationServer)
+    {
+        $router->get(Config::get('laravel-oauth2-server.authorize'), function() use($authorizationServer) {
             try {
                 $authParams = $authorizationServer->getGrantType('authorization_code')->checkAuthorizeParams();
                 if (Auth::check()) {
@@ -68,13 +85,16 @@ class OAuthServerServiceProvider extends ServiceProvider {
                 if (Config::get('laravel-oauth2-server.login_is_route')) {
                     return redirect(route(Config::get('laravel-oauth2-server.login_route')));
                 }
-                return redirect(Config::get('laravel-oauth2-server.login_path'));    
+                return redirect(Config::get('laravel-oauth2-server.login_path'));
             } catch (Exception $e) {
                 die('Wrong authorize parameters!');
             }
         });
+    }
 
-        $router->post('access_token', function () use ($authorizationServer) {
+    private function accessTokenRoute(Router $router, AuthorizationServer $authorizationServer)
+    {
+        $router->post(Config::get('laravel-oauth2-server.access_token'), function () use ($authorizationServer) {
             try {
                 $response = $authorizationServer->issueAccessToken();
                 return response(json_encode($response));
@@ -82,8 +102,11 @@ class OAuthServerServiceProvider extends ServiceProvider {
                 die('Could not issue access token!');
             }
         });
+    }
 
-        $router->get('user_details', function () use ($resourceServer) {
+    private function userDetailsRoute(Router $router, ResourceServer $resourceServer)
+    {
+        $router->get(Config::get('laravel-oauth2-server.user_details'), function () use ($resourceServer) {
             $accessTokenString = Request::input('access_token');
             $accessToken = new AccessTokenEntity($resourceServer);
             $accessToken->setId($accessTokenString);
@@ -97,13 +120,21 @@ class OAuthServerServiceProvider extends ServiceProvider {
             $model = Config::get('auth.model');
             $user = $model::find($session->getOwnerId());
 
+//            if (Session::has('oauth_clients')) {
+//                $session_clients = Session::pull('oauth_clients');
+//                $session_clients = array_merge($session_clients, $session->getClient()->getId());
+//                Session::put('oauth_clients', $session_clients);
+//            } else {
+//                Session::put('oauth_clients', [$session->getClient()->getId()]);
+//            }
+//            $other_client = $resourceServer->getClientStorage()->getFirstClientWhereNotIn(Session::get('oauth_clients'));
+//            if ($other_client) {
+//                $guzzleClient = new GuzzleClient();
+//                $guzzleClient->get($other_client->getRedirectUri());
+//            }
+
             return response(json_encode(['uid' => $user->id, 'email' => $user->email]));
         });
-    }
-
-    public function provides()
-    {
-        return ['command.oauth.client'];
     }
 
 }
