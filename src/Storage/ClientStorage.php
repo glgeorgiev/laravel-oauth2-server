@@ -65,26 +65,4 @@ class ClientStorage extends AbstractStorage implements ClientInterface
 
         return;
     }
-
-    public function getFirstClientWhereNotIn($client_ids)
-    {
-        $result = DB::table('oauth_clients')
-                            ->select(['oauth_clients.id', 'oauth_clients.name', 'oauth_client_redirect_uris.redirect_uri'])
-                            ->join('oauth_client_redirect_uris', 'oauth_clients.id', '=', 'oauth_client_redirect_uris.client_id')
-                            ->whereNotIn('oauth_clients.id', $client_ids)
-                            ->limit(1)
-                            ->get();
-
-        if (count($result) === 1) {
-            $client = new ClientEntity($this->server);
-            $client->hydrate([
-                'id'    =>  $result[0]->id,
-                'name'  =>  $result[0]->name,
-                'redirectUri'   => $result[0]->redirect_uri,
-            ]);
-
-            return $client;
-        }
-        return;
-    }
 }

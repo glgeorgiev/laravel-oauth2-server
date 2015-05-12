@@ -5,23 +5,28 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 
+/**
+ * Class ClientCommand
+ * @author Georgi Georgiev georgi.georgiev@delta.bg
+ * @package GLGeorgiev\LaravelOAuth2Server\Console\Commands\ClientCommand
+ */
 class ClientCommand extends Command{
 
-	/**
-	 * The console command name.
-	 *
-	 * @var string
-	 */
-	protected $name = 'oauth:client';
+    /**
+     * The console command name.
+     *
+     * @var string
+     */
+    protected $name = 'oauth:client';
 
-	/**
-	 * The console command description.
-	 *
-	 * @var string
-	 */
-	protected $description = 'List, Add Or Remove Client';
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'List, Add Or Remove Client';
 
-	/**
+    /**
      * Execute the console command.
      *
      * @return void
@@ -34,6 +39,8 @@ class ClientCommand extends Command{
             $this->addCommand();
         } elseif ($this->argument('action') == 'remove') {
             $this->removeCommand();
+        } elseif ($this->argument('action') == 'show') {
+            $this->showCommand();
         } else {
             $this->error('Invalid argument action!');
         }
@@ -47,7 +54,7 @@ class ClientCommand extends Command{
     protected function getArguments()
     {
         return [
-            ['action', InputArgument::REQUIRED, 'add or remove'],
+            ['action', InputArgument::REQUIRED, 'add/remove/list/show'],
         ];
     }
 
@@ -61,22 +68,29 @@ class ClientCommand extends Command{
         return [
             ['id', null, InputOption::VALUE_REQUIRED, 'Client ID'],
             ['name', null, InputOption::VALUE_REQUIRED, 'Client Name'],
-            ['uri', null, InputOption::VALUE_REQUIRED, 'Client Redirect URI'],
+            ['redirect', null, InputOption::VALUE_REQUIRED, 'Client Redirect URI'],
+            ['logout', null,InputOption::VALUE_REQUIRED, 'Client Logout URI'],
         ];
     }
 
+    /**
+     * List Clients Command
+     */
     private function listCommand()
     {
-    	$results = DB::select('select client_id, secret, name, redirect_uri
+        $results = DB::select('select client_id, name, redirect_uri, logout_uri
             from oauth_clients join oauth_client_redirect_uris
             on oauth_clients.id = oauth_client_redirect_uris.client_id');
         $results = json_decode(json_encode($results), true);    //small hack to convert object to array
-        $this->table(['client_id', 'secret', 'name', 'redirect_uri'], $results);
+        $this->table(['client_id', 'name', 'redirect_uri', 'logout_uri'], $results);
     }
 
+    /**
+     * Add Client Command
+     */
     private function addCommand()
     {
-		if ($this->option('name') && $this->option('uri')) {
+        if ($this->option('name') && $this->option('redirect') && $this->option('logout')) {
             $result = DB::select('select count(*) as count from oauth_clients where name = ?',
                 [$this->option('name')]);
             if (!$result[0]->count) {
@@ -86,13 +100,14 @@ class ClientCommand extends Command{
                 $secret = str_replace(['/', '+', '='], '', base64_encode($bytes));
                 DB::insert('insert into oauth_clients (id, secret, name) values (?, ?, ?)',
                     [$id, $secret, $this->option('name')]);
-                DB::insert('insert into oauth_client_redirect_uris (client_id, redirect_uri) values (?, ?)',
-                    [$id, $this->option('uri')]);
+                DB::insert('insert into oauth_client_redirect_uris (client_id, redirect_uri, logout_uri) values (?, ?, ?)',
+                    [$id, $this->option('redirect'), $this->option('logout')]);
                 $this->comment('Successfully added client with:');
-                $this->info('Name        :' . $this->option('name'));
-                $this->info('ID          :' . $id);
-                $this->info('Secret      :' . $secret);
-                $this->info('Redirect URI:' . $this->option('uri'));
+                $this->info('        Name: ' . $this->option('name'));
+                $this->info('          ID: ' . $id);
+                $this->info('      Secret: ' . $secret);
+                $this->info('Redirect URI: ' . $this->option('redirect'));
+                $this->info('  Logout URI: ' . $this->option('logout'));
             } else {
                 $this->error('Such client already exists!');
             }
@@ -101,10 +116,13 @@ class ClientCommand extends Command{
         }
     }
 
+    /**
+     * Remove Client Command
+     */
     private function removeCommand()
     {
-		if ($this->option('id') || $this->option('name')) {
-            $result = DB::select('select id from oauth_clients where id = ? or name = ?',
+        if ($this->option('id') || $this->option('name')) {
+            $result = DB::select('select id from oauth_clients where id = ? or name = ? limit 1',
                 [$this->option('id'), $this->option('name')]);
             if (isset($result[0])) {
                 DB::delete('delete from oauth_client_redirect_uris where client_id = ?',
@@ -112,6 +130,32 @@ class ClientCommand extends Command{
                 DB::delete('delete from oauth_clients where id = ?',
                     [$result[0]->id]);
                 $this->comment('Successfully deleted client.');
+            } else {
+                $this->error('There is no such client!');
+            }
+        } else {
+            $this->error('There are missing options, please fill them!');
+        }
+    }
+
+    /**
+     * Show Client Command
+     */
+    private function showCommand()
+    {
+        if ($this->option('id') || $this->option('name')) {
+            $result = DB::select('select client_id, name, secret, redirect_uri, logout_uri
+                from oauth_clients join oauth_client_redirect_uris
+                on oauth_clients.id = oauth_client_redirect_uris.client_id
+                where client_id = ? or name = ? limit 1',
+                [$this->option('id'), $this->option('name')]);
+            if (isset($result[0])) {
+                $this->comment('Info for client:');
+                $this->info('        Name: ' . $result[0]->name);
+                $this->info('          ID: ' . $result[0]->client_id);
+                $this->info('      Secret: ' . $result[0]->secret);
+                $this->info('Redirect URI: ' . $result[0]->redirect_uri);
+                $this->info('  Logout URI: ' . $result[0]->logout_uri);
             } else {
                 $this->error('There is no such client!');
             }

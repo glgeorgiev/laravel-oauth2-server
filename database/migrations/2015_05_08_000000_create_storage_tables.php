@@ -24,6 +24,7 @@ class CreateStorageTables extends Migration {
             $table->increments('id');
             $table->string('client_id');
             $table->string('redirect_uri');
+            $table->string('logout_uri');
         });
 
         Schema::create('oauth_scopes', function (Blueprint $table) {
