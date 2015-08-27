@@ -6,5 +6,5 @@ return [
 	'user_details_path' => 'user_details',
 	'login_is_route'	=> true,
 	'login_route'		=> 'auth.login',
-	'login_path'		=> 'login',
+	'login_path'		=> '/auth/login',
 ];

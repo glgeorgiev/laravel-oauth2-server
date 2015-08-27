@@ -105,10 +105,9 @@ class CreateStorageTables extends Migration {
                 ->onUpdate('cascade')->onDelete('cascade');
         });
 
-        //insert the 2 scopes, that will be used:
+        //insert the scope, that will be used:
         DB::insert('insert into oauth_scopes (id, description) values (?, ?)', ['uid', 'Your User ID']);
-        DB::insert('insert into oauth_scopes (id, description) values (?, ?)', ['email', 'Your e-mail']);
-	}
+    }
 
 	/**
 	 * Reverse the migrations.

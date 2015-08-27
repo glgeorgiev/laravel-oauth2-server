@@ -7,13 +7,11 @@ use Event;
 use Exception;
 use Request;
 
-use Guzzle\Http\Client as GuzzleHttpClient;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Routing\Router;
 use League\OAuth2\Server\AuthorizationServer;
 use League\OAuth2\Server\ResourceServer;
-//use League\OAuth2\Server\Grant\AuthCodeGrant;
-use League\OAuth2\Server\Grant\ClientCredentialsGrant;
+use League\OAuth2\Server\Grant\AuthCodeGrant;
 use League\OAuth2\Server\Grant\RefreshTokenGrant;
 use League\OAuth2\Server\Entity\AccessTokenEntity;
 
@@ -65,57 +63,26 @@ class OAuthServerServiceProvider extends ServiceProvider {
         $authorizationServer->setRefreshTokenStorage(new Storage\RefreshTokenStorage());
         $authorizationServer->setClientStorage(new Storage\ClientStorage());
         $authorizationServer->setScopeStorage(new Storage\ScopeStorage());
-//        $authorizationServer->setAuthCodeStorage(new Storage\AuthCodeStorage());
+        $authorizationServer->setAuthCodeStorage(new Storage\AuthCodeStorage());
 
-//        $authCodeGrant = new AuthCodeGrant();
-//        $authorizationServer->addGrantType($authCodeGrant);
-
-        $clientCredentials = new ClientCredentialsGrant();
-        $authorizationServer->addGrantType($clientCredentials);
+        $authCodeGrant = new AuthCodeGrant();
+        $authorizationServer->addGrantType($authCodeGrant);
 
         $refreshTokenGrant = new RefreshTokenGrant();
         $authorizationServer->addGrantType($refreshTokenGrant);
 
-//        $resourceServer = new ResourceServer(
-//            new Storage\SessionStorage(),
-//            new Storage\AccessTokenStorage(),
-//            new Storage\ClientStorage(),
-//            new Storage\ScopeStorage()
-//        );
+        $resourceServer = new ResourceServer(
+            new Storage\SessionStorage(),
+            new Storage\AccessTokenStorage(),
+            new Storage\ClientStorage(),
+            new Storage\ScopeStorage()
+        );
 
-//        $this->authorizeRoute($router, $authorizationServer);
+        $this->authorizeRoute($router, $authorizationServer);
 
         $this->accessTokenRoute($router, $authorizationServer);
 
-//        $this->userDetailsRoute($router, $resourceServer);
-
-        Event::listen('auth.login', function() {
-            $results = DB::table('oauth_clients')
-                ->select(['oauth_clients.id', 'oauth_clients.name', 'oauth_client_redirect_uris.redirect_uri'])
-                ->join('oauth_client_redirect_uris', 'oauth_clients.id', '=', 'oauth_client_redirect_uris.client_id')
-                ->get();
-
-            $guzzleHttpClient = new GuzzleHttpClient();
-            $requests = [];
-            foreach ($results as $result) {
-                $requests[] = $guzzleHttpClient->get($result->redirect_uri);
-            }
-            $guzzleHttpClient->send($requests);
-        });
-
-        Event::listen('auth.logout', function() {
-            $results = DB::table('oauth_clients')
-                ->select(['oauth_clients.id', 'oauth_clients.name', 'oauth_client_redirect_uris.logout_uri'])
-                ->join('oauth_client_redirect_uris', 'oauth_clients.id', '=', 'oauth_client_redirect_uris.client_id')
-                ->get();
-
-            $guzzleHttpClient = new GuzzleHttpClient();
-            $requests = [];
-            foreach ($results as $result) {
-                $requests[] = $guzzleHttpClient->get($result->logout_uri);
-            }
-            $guzzleHttpClient->send($requests);
-        });
+        $this->userDetailsRoute($router, $resourceServer);
     }
 
     /**
@@ -181,9 +148,8 @@ class OAuthServerServiceProvider extends ServiceProvider {
     private function userDetailsRoute(Router $router, ResourceServer $resourceServer)
     {
         $router->get(Config::get('laravel-oauth2-server.user_details_path'), function () use ($resourceServer) {
-            $accessTokenString = Request::input('access_token');
             $accessToken = new AccessTokenEntity($resourceServer);
-            $accessToken->setId($accessTokenString);
+            $accessToken->setId(Request::input('access_token'));
 
             if (! $resourceServer->isValidRequest(false, $accessToken)) {
                 die('The request is not valid!');
@@ -191,10 +157,11 @@ class OAuthServerServiceProvider extends ServiceProvider {
 
             $session = $resourceServer->getSessionStorage()->getByAccessToken($accessToken);
 
-            $model = Config::get('auth.model');
-            $user = $model::find($session->getOwnerId());
+            if ($session->getOwnerType() !== 'user') {
+                die('Session is not valid!');
+            }
 
-            return response(json_encode(['uid' => $user->id, 'email' => $user->email]));
+            return response(json_encode(['uid' => $session->getOwnerId()]));
         });
     }
 
