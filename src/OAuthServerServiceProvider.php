@@ -12,7 +12,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Routing\Router;
 use League\OAuth2\Server\AuthorizationServer;
 use League\OAuth2\Server\ResourceServer;
-use League\OAuth2\Server\Grant\AuthCodeGrant;
+//use League\OAuth2\Server\Grant\AuthCodeGrant;
+use League\OAuth2\Server\Grant\ClientCredentialsGrant;
 use League\OAuth2\Server\Grant\RefreshTokenGrant;
 use League\OAuth2\Server\Entity\AccessTokenEntity;
 
@@ -64,26 +65,29 @@ class OAuthServerServiceProvider extends ServiceProvider {
         $authorizationServer->setRefreshTokenStorage(new Storage\RefreshTokenStorage());
         $authorizationServer->setClientStorage(new Storage\ClientStorage());
         $authorizationServer->setScopeStorage(new Storage\ScopeStorage());
-        $authorizationServer->setAuthCodeStorage(new Storage\AuthCodeStorage());
+//        $authorizationServer->setAuthCodeStorage(new Storage\AuthCodeStorage());
 
-        $authCodeGrant = new AuthCodeGrant();
-        $authorizationServer->addGrantType($authCodeGrant);
+//        $authCodeGrant = new AuthCodeGrant();
+//        $authorizationServer->addGrantType($authCodeGrant);
+
+        $clientCredentials = new ClientCredentialsGrant();
+        $authorizationServer->addGrantType($clientCredentials);
 
         $refreshTokenGrant = new RefreshTokenGrant();
         $authorizationServer->addGrantType($refreshTokenGrant);
 
-        $resourceServer = new ResourceServer(
-            new Storage\SessionStorage(),
-            new Storage\AccessTokenStorage(),
-            new Storage\ClientStorage(),
-            new Storage\ScopeStorage()
-        );
+//        $resourceServer = new ResourceServer(
+//            new Storage\SessionStorage(),
+//            new Storage\AccessTokenStorage(),
+//            new Storage\ClientStorage(),
+//            new Storage\ScopeStorage()
+//        );
 
-        $this->authorizeRoute($router, $authorizationServer);
+//        $this->authorizeRoute($router, $authorizationServer);
 
         $this->accessTokenRoute($router, $authorizationServer);
 
-        $this->userDetailsRoute($router, $resourceServer);
+//        $this->userDetailsRoute($router, $resourceServer);
 
         Event::listen('auth.login', function() {
             $results = DB::table('oauth_clients')

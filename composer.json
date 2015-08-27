@@ -12,8 +12,8 @@
     "require": {
        "php": ">=5.4.0",
        "laravel/framework": "5.0.*",
-       "league/oauth2-server": "dev-master",
-       "guzzle/guzzle": "~3.7"
+       "league/oauth2-server": "4.1.*",
+       "guzzle/guzzle": "3.7.*"
     },
     "autoload": {
        "psr-4": {
