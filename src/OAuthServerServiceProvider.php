@@ -57,8 +57,13 @@ class OAuthServerServiceProvider extends ServiceProvider
     {
         $configPath = __DIR__ . '/../config/laravel-oauth2-server.php';
         $this->publishes([$configPath => config_path('laravel-oauth2-server.php')], 'config');
+        
         $migrationPath = __DIR__ . '/../database/migrations/';
         $this->publishes([$migrationPath => database_path('migrations/')], 'migrations');
+
+        $viewPath = __DIR__. '/../resources/views';
+        $this->loadViewsFrom($viewPath, 'glgeorgiev');
+        $this->publishes([$viewPath => base_path('resources/views/vendor/glgeorgiev')], 'views');
 
         $authorizationServer = new AuthorizationServer();
         $authorizationServer->setSessionStorage(new Storage\SessionStorage());
@@ -103,6 +108,7 @@ class OAuthServerServiceProvider extends ServiceProvider
      *
      * @param Router $router
      * @param AuthorizationServer $authorizationServer
+     * @return \Response
      */
     private function authorizeRoute(Router $router, AuthorizationServer $authorizationServer)
     {
@@ -113,6 +119,9 @@ class OAuthServerServiceProvider extends ServiceProvider
                     $redirectUri = $authorizationServer->getGrantType('authorization_code')
                         ->newAuthorizeRequest('user', Auth::id(), $authParams);
                     return redirect($redirectUri);
+                }
+                if (Request::input('if_not_authenticated')) {
+                    return redirect(Request::input('if_not_authenticated'));
                 }
                 if (Config::get('laravel-oauth2-server.login_is_route')) {
                     return redirect(route(Config::get('laravel-oauth2-server.login_route')));
@@ -125,10 +134,11 @@ class OAuthServerServiceProvider extends ServiceProvider
     }
 
     /**
-     * The route for issuing access token
+     * The route responsible for issuing access token
      *
      * @param Router $router
      * @param AuthorizationServer $authorizationServer
+     * @return \Response
      */
     private function accessTokenRoute(Router $router, AuthorizationServer $authorizationServer)
     {
@@ -150,14 +160,15 @@ class OAuthServerServiceProvider extends ServiceProvider
      *
      * @param Router $router
      * @param ResourceServer $resourceServer
+     * @return \Response
      */
     private function userDetailsRoute(Router $router, ResourceServer $resourceServer)
     {
         $router->get(Config::get('laravel-oauth2-server.user_details_path'), function () use ($resourceServer) {
-            $accessToken = new AccessTokenEntity($resourceServer);
-            $accessToken->setId(Request::input('access_token'));
-
             try {
+                $accessToken = new AccessTokenEntity($resourceServer);
+                $accessToken->setId(Request::input('access_token'));
+
                 $resourceServer->isValidRequest(false, $accessToken);
 
                 $session = $resourceServer->getSessionStorage()->getByAccessToken($accessToken);
