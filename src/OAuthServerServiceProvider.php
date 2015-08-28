@@ -5,6 +5,8 @@ use Config;
 use DB;
 use Event;
 use Exception;
+use League\OAuth2\Server\Exception\AccessDeniedException;
+use League\OAuth2\Server\Exception\InvalidRequestException;
 use Request;
 
 use Illuminate\Support\ServiceProvider;
@@ -20,7 +22,8 @@ use League\OAuth2\Server\Entity\AccessTokenEntity;
  * @author Georgi Georgiev georgi.georgiev@delta.bg
  * @package GLGeorgiev\LaravelOAuth2Server\OAuthServerServiceProvider
  */
-class OAuthServerServiceProvider extends ServiceProvider {
+class OAuthServerServiceProvider extends ServiceProvider
+{
 
     /**
      * Indicates if loading of the provider is deferred.
@@ -132,9 +135,12 @@ class OAuthServerServiceProvider extends ServiceProvider {
         $router->post(Config::get('laravel-oauth2-server.access_token_path'), function () use ($authorizationServer) {
             try {
                 $response = $authorizationServer->issueAccessToken();
-                return response(json_encode($response));
+                return response()->json($response);
             } catch (Exception $e) {
-                die('Could not issue access token!');
+                return response()->json([
+                    'error'     => $e->getCode(),
+                    'message'   => $e->getMessage(),
+                ], 500);
             }
         });
     }
@@ -151,17 +157,33 @@ class OAuthServerServiceProvider extends ServiceProvider {
             $accessToken = new AccessTokenEntity($resourceServer);
             $accessToken->setId(Request::input('access_token'));
 
-            if (! $resourceServer->isValidRequest(false, $accessToken)) {
-                die('The request is not valid!');
+            try {
+                $resourceServer->isValidRequest(false, $accessToken);
+
+                $session = $resourceServer->getSessionStorage()->getByAccessToken($accessToken);
+
+                if (! ($session->getOwnerType() === 'user' &&
+                    $resourceServer->getAccessToken()->hasScope('uid'))) {
+                    throw new AccessDeniedException();
+                }
+
+                return response()->json(['id' => $session->getOwnerId()]);
+            } catch (InvalidRequestException $ire) {
+                return response()->json([
+                    'error'     => $ire->getCode(),
+                    'message'   => $ire->getMessage(),
+                ], $ire->httpStatusCode);
+            } catch (AccessDeniedException $acd) {
+                return response()->json([
+                    'error'     => $acd->getCode(),
+                    'message'   => $acd->getMessage(),
+                ], $acd->httpStatusCode);
+            } catch (Exception $e) {
+                return response()->json([
+                    'error'     => $e->getCode(),
+                    'message'   => $e->getMessage(),
+                ], 500);
             }
-
-            $session = $resourceServer->getSessionStorage()->getByAccessToken($accessToken);
-
-            if ($session->getOwnerType() !== 'user') {
-                die('Session is not valid!');
-            }
-
-            return response(json_encode(['uid' => $session->getOwnerId()]));
         });
     }
 

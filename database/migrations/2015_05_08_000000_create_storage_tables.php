@@ -4,7 +4,8 @@ use DB;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateStorageTables extends Migration {
+class CreateStorageTables extends Migration
+{
 
 	/**
 	 * Run the migrations.

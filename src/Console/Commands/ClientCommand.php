@@ -10,7 +10,8 @@ use Symfony\Component\Console\Input\InputArgument;
  * @author Georgi Georgiev georgi.georgiev@delta.bg
  * @package GLGeorgiev\LaravelOAuth2Server\Console\Commands\ClientCommand
  */
-class ClientCommand extends Command{
+class ClientCommand extends Command
+{
 
     /**
      * The console command name.
@@ -24,7 +25,7 @@ class ClientCommand extends Command{
      *
      * @var string
      */
-    protected $description = 'List, Add Or Remove Client';
+    protected $description = 'List, Add, Remove Or Show Client';
 
     /**
      * Execute the console command.
@@ -66,10 +67,10 @@ class ClientCommand extends Command{
     protected function getOptions()
     {
         return [
-            ['id', null, InputOption::VALUE_REQUIRED, 'Client ID'],
-            ['name', null, InputOption::VALUE_REQUIRED, 'Client Name'],
+            ['id',       null, InputOption::VALUE_REQUIRED, 'Client ID'],
+            ['name',     null, InputOption::VALUE_REQUIRED, 'Client Name'],
             ['redirect', null, InputOption::VALUE_REQUIRED, 'Client Redirect URI'],
-            ['logout', null,InputOption::VALUE_REQUIRED, 'Client Logout URI'],
+            ['logout',   null, InputOption::VALUE_REQUIRED, 'Client Logout URI'],
         ];
     }
 
