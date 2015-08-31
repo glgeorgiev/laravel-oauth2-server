@@ -57,13 +57,9 @@ class OAuthServerServiceProvider extends ServiceProvider
     {
         $configPath = __DIR__ . '/../config/laravel-oauth2-server.php';
         $this->publishes([$configPath => config_path('laravel-oauth2-server.php')], 'config');
-        
+
         $migrationPath = __DIR__ . '/../database/migrations/';
         $this->publishes([$migrationPath => database_path('migrations/')], 'migrations');
-
-        $viewPath = __DIR__. '/../resources/views';
-        $this->loadViewsFrom($viewPath, 'glgeorgiev');
-        $this->publishes([$viewPath => base_path('resources/views/vendor/glgeorgiev')], 'views');
 
         $authorizationServer = new AuthorizationServer();
         $authorizationServer->setSessionStorage(new Storage\SessionStorage());
@@ -118,15 +114,20 @@ class OAuthServerServiceProvider extends ServiceProvider
                 if (Auth::check()) {
                     $redirectUri = $authorizationServer->getGrantType('authorization_code')
                         ->newAuthorizeRequest('user', Auth::id(), $authParams);
+                    if (Request::input('target_url')) {
+                        $redirectUri .= '&target_url=' . Request::input('target_url');
+                    }
                     return redirect($redirectUri);
                 }
-                if (Request::input('if_not_authenticated')) {
-                    return redirect(Request::input('if_not_authenticated'));
+                if (Request::input('auth_checkup') && Request::input('target_url')) {
+                    return redirect(Request::input('target_url'));
                 }
                 if (Config::get('laravel-oauth2-server.login_is_route')) {
-                    return redirect(route(Config::get('laravel-oauth2-server.login_route')));
+                    return redirect(route(Config::get('laravel-oauth2-server.login_route')) .
+                        '?target_url=' . Request::input('target_url'));
                 }
-                return redirect(Config::get('laravel-oauth2-server.login_path'));
+                return redirect(Config::get('laravel-oauth2-server.login_path') .
+                    '?target_url=' . Request::input('target_url'));
             } catch (Exception $e) {
                 die('Wrong authorize parameters!');
             }

@@ -8,4 +8,6 @@ return [
 	'login_is_route'	=> false,
 	'login_route'		=> 'auth.login',
 	'login_path'		=> '/auth/login',
+
+	'default_redirect'  => 'http://server.com/',
 ];
