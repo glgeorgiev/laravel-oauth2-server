@@ -67,10 +67,10 @@ class ClientCommand extends Command
     protected function getOptions()
     {
         return [
-            ['id',       null, InputOption::VALUE_REQUIRED, 'Client ID'],
-            ['name',     null, InputOption::VALUE_REQUIRED, 'Client Name'],
-            ['redirect', null, InputOption::VALUE_REQUIRED, 'Client Redirect URI'],
-            ['logout',   null, InputOption::VALUE_REQUIRED, 'Client Logout URI'],
+            ['id',      null, InputOption::VALUE_REQUIRED, 'Client ID'],
+            ['name',    null, InputOption::VALUE_REQUIRED, 'Client Name'],
+            ['login',   null, InputOption::VALUE_REQUIRED, 'Client Login URI'],
+            ['logout',  null, InputOption::VALUE_REQUIRED, 'Client Logout URI'],
         ];
     }
 
@@ -91,7 +91,7 @@ class ClientCommand extends Command
      */
     private function addCommand()
     {
-        if ($this->option('name') && $this->option('redirect') && $this->option('logout')) {
+        if ($this->option('name') && $this->option('login') && $this->option('logout')) {
             $result = DB::select('select count(*) as count from oauth_clients where name = ?',
                 [$this->option('name')]);
             if (!$result[0]->count) {
@@ -102,13 +102,13 @@ class ClientCommand extends Command
                 DB::insert('insert into oauth_clients (id, secret, name) values (?, ?, ?)',
                     [$id, $secret, $this->option('name')]);
                 DB::insert('insert into oauth_client_redirect_uris (client_id, redirect_uri, logout_uri) values (?, ?, ?)',
-                    [$id, $this->option('redirect'), $this->option('logout')]);
+                    [$id, $this->option('login'), $this->option('logout')]);
                 $this->comment('Successfully added client with:');
-                $this->info('        Name: ' . $this->option('name'));
-                $this->info('          ID: ' . $id);
-                $this->info('      Secret: ' . $secret);
-                $this->info('Redirect URI: ' . $this->option('redirect'));
-                $this->info('  Logout URI: ' . $this->option('logout'));
+                $this->info('      Name: ' . $this->option('name'));
+                $this->info('        ID: ' . $id);
+                $this->info('    Secret: ' . $secret);
+                $this->info(' Login URI: ' . $this->option('login'));
+                $this->info('Logout URI: ' . $this->option('logout'));
             } else {
                 $this->error('Such client already exists!');
             }
@@ -152,11 +152,11 @@ class ClientCommand extends Command
                 [$this->option('id'), $this->option('name')]);
             if (isset($result[0])) {
                 $this->comment('Info for client:');
-                $this->info('        Name: ' . $result[0]->name);
-                $this->info('          ID: ' . $result[0]->client_id);
-                $this->info('      Secret: ' . $result[0]->secret);
-                $this->info('Redirect URI: ' . $result[0]->redirect_uri);
-                $this->info('  Logout URI: ' . $result[0]->logout_uri);
+                $this->info('      Name: ' . $result[0]->name);
+                $this->info('        ID: ' . $result[0]->client_id);
+                $this->info('    Secret: ' . $result[0]->secret);
+                $this->info(' Login URI: ' . $result[0]->redirect_uri);
+                $this->info('Logout URI: ' . $result[0]->logout_uri);
             } else {
                 $this->error('There is no such client!');
             }
