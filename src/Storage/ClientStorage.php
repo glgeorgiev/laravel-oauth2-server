@@ -39,7 +39,7 @@ class ClientStorage extends AbstractStorage implements ClientInterface
             return $client;
         }
 
-        return;
+        return null;
     }
 
     /**
@@ -63,6 +63,6 @@ class ClientStorage extends AbstractStorage implements ClientInterface
             return $client;
         }
 
-        return;
+        return null;
     }
 }
